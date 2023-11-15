@@ -1,0 +1,103 @@
+﻿@{
+    ViewData["Title"] = "Dynamic ToDo List";
+}
+@model IEnumerable<string>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #ccc;
+            margin: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>@ViewData["Title"]</h1>
+    <form id="taskForm">
+        <label for="taskInput">Нове завдання:</label>
+        <input type="text" id="taskInput" required>
+        <button type="button" onclick="addTask()">Додати завдання</button>
+    </form>
+
+    @foreach (var task in Model)
+    {
+        <li class="task">
+            <span>@task</span>
+            <button class="button" onclick="deleteTask(this)">Видалити</button>
+        </li>
+    }
+
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <script>
+        function addTask() {
+            var taskInput = document.getElementById('taskInput');
+            var taskList = document.getElementById('taskList');
+
+            if (taskInput.value !== '') {
+                $.ajax({
+                    url: '/Task/AddTask',
+                    type: 'POST',
+                    data: { taskName: taskInput.value },
+                    success: function (result) {
+                        if (result.success) {
+                            var taskItem = document.createElement('li');
+                            taskItem.className = 'task';
+                            taskItem.innerHTML = `
+                                    <span>${taskInput.value}</span>
+                                    <span class="delete-btn" onclick="deleteTask(this)">Delete</span>
+                                `;
+                            taskList.appendChild(taskItem);
+
+                            taskInput.value = '';
+                            simulateF5KeyPress();
+                            reloadPage();
+                        } else {
+                            alert('Не вдалося додати завдання.');
+                        }
+                    },
+                    error: function () {
+                        alert('Помилка при додаванні завдання.');
+                    }
+                });
+            }
+        }
+
+        function deleteTask(element) {
+            var taskItem = element.parentNode;
+
+            $.ajax({
+                url: '/Task/DeleteTask',
+                type: 'POST',
+                success: function (result) {
+                    if (result.success) {
+                        taskItem.parentNode.removeChild(taskItem);
+                        reloadPage();
+                    } else {
+                        alert('Не вдалося видалити завдання.');
+                    }
+                },
+                error: function () {
+                    alert('Помилка при видаленні завдання.');
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
