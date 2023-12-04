@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic ToDo List</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+            width: 300px;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #ccc;
+            margin: 5px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: grab;
+            /* Set cursor to grab for better user experience */
+            user-select: none;
+            /* Disable text selection during drag */
+        }
+
+        .dragging {
+            opacity: 0.5;
+            /* Reduce opacity for the dragged task */
+            cursor: grabbing;
+            /* Set cursor to grabbing while dragging */
+        }
+
+        .delete-btn {
+            cursor: pointer;
+            color: #ff0000;
+        }
+
+        #taskForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            margin-bottom: 5px;
+        }
+
+        input {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 200px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Dynamic ToDo List</h1>
+    <form id="taskForm">
+        <label for="taskInput">New Task:</label>
+        <input type="text" id="taskInput" required>
+        <button type="button" onclick="addTask()">Add Task</button>
+    </form>
+    <ul id="taskList" ondragover="allowDrop(event)" ondrop="drop(event)"></ul>
+
+    <script>
+        function addTask() {
+            var taskInput = document.getElementById('taskInput');
+            var taskList = document.getElementById('taskList');
+
+            if (taskInput.value !== '') {
+                var taskItem = document.createElement('li');
+                taskItem.className = 'task';
+                taskItem.draggable = true;
+                taskItem.innerHTML = `
+                    <span>${taskInput.value}</span>
+                    <span class="delete-btn" onclick="deleteTask(this)">Delete</span>
+                `;
+                taskList.appendChild(taskItem);
+                saveTasksToLocalStorage();
+
+                taskInput.value = '';
+                makeTasksDraggable(); // Make the new task draggable
+            }
+        }
+
+        function deleteTask(element) {
+            var taskList = document.getElementById('taskList');
+            var taskItem = element.parentNode;
+            taskList.removeChild(taskItem);
+            saveTasksToLocalStorage();
+        }
+
+        function saveTasksToLocalStorage() {
+            var taskList = document.getElementById('taskList');
+            var tasks = taskList.innerHTML;
+            localStorage.setItem('tasks', tasks);
+        }
+
+        function loadTasksFromLocalStorage() {
+            var taskList = document.getElementById('taskList');
+            var tasks = localStorage.getItem('tasks');
+            if (tasks) {
+                taskList.innerHTML = tasks;
+            }
+            makeTasksDraggable();
+        }
+
+        function makeTasksDraggable() {
+            var tasks = document.querySelectorAll('.task');
+            tasks.forEach(function (task) {
+                task.draggable = true;
+                task.addEventListener('dragstart', dragStart);
+                task.addEventListener('dragend', dragEnd);
+            });
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function dragStart(event) {
+            event.dataTransfer.setData('text/plain', null);
+            event.target.classList.add('dragging');
+        }
+
+        function dragEnd(event) {
+            event.target.classList.remove('dragging');
+            saveTasksToLocalStorage();
+        }
+
+        function drop(event) {
+                event.preventDefault();
+                var draggedTask = document.querySelector('.dragging');
+
+                // If a task is being dragged
+                if (draggedTask) {
+                    var taskList = document.getElementById('taskList');
+                    var tasks = taskList.querySelectorAll('.task');
+                    var mouseY = event.clientY;
+                    var targetIndex = -1;
+
+                    // Find the index where the task is dropped
+                    tasks.forEach(function (task, index) {
+                        var rect = task.getBoundingClientRect();
+
+                        // Check if mouseY is in the upper half of the task
+                        if (mouseY < rect.top + rect.height / 2) {
+                            targetIndex = index;
+                        }
+                    });
+
+                    // Move the dragged task to the new position
+                    if (targetIndex !== -1) {
+                        taskList.insertBefore(draggedTask, tasks[targetIndex]);
+                    } else {
+                        // If mouseY is in the lower half of the last task, move the dragged task to the end
+                        taskList.appendChild(draggedTask);
+                    }
+
+                    // Remove the dragging class
+                    draggedTask.classList.remove('dragging');
+                    saveTasksToLocalStorage();
+                }
+            }
+
+        window.onload = loadTasksFromLocalStorage;
+    </script>
+</body>
+
+</html>
